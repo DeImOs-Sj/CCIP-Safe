@@ -6,6 +6,7 @@ import { Escrow } from "./Pages/Escrow";
 import { chainData } from "./utils/chainData";
 import { tokens } from "./utils/Tokens";
 import WalletConnect from "./Components/WalletConnet"
+import MyDataTransferComponent from './Pages/DataTransfer';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/escrow"   element={<Escrow chainData={chainData}  tokens={tokens} />} />
+            <Route path="/dataTransfer"   element={<MyDataTransferComponent />} />
 
         </Routes>
       </BrowserRouter>
