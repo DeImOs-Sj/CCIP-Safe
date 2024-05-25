@@ -56,41 +56,94 @@ import {
 import Aside from "@/Components/Aside";
 import Navbar from '@/Components/Navbar';
 import { chainData } from "../utils/chainData";
-import WalletButton from '../Components/WalletConnet'; // Import the new component
-const DialogDemo = ({ show, onClose }) => {
+import WalletButton from '../Components/WalletConnet'; 
+import TokenAbi from "../Abis/Erc20.json"
+
+
+
+const DialogDemo = ({ show, onClose,  receiverAddress, amount, escrowIdBytes32 }) => {
+  const senderAddress ="0x4CCCED009AAE31054dAd2BC6cD9B81306D87282e"
+  const EscrowContractAddress = "0xe4dB10384821b7cAF702bb4c2eF8a7F99d979fEe";
+  const escrowParams = {
+    // Assuming other parameters are here
+    amount: amount.toString(), // Convert BigInt to string
+    // Other parameters...
+  };
+  // const amountBytes32 = web3.utils.utf8ToHex(amount.toString());
+
+  const depositTokensToEscrow = async () => {
+    try {
+      const web3 = new Web3(window.ethereum);
+      await window.ethereum.enable();
+      const accounts = await web3.eth.getAccounts();
+      const account = accounts[0];
+
+
+
+      const escrowContract = new web3.eth.Contract(EscrowAbi, EscrowContractAddress);
+
+      // Fetch the escrow details
+      const escrow = await escrowContract.methods.escrows(escrowIdBytes32).call();
+
+      // Check if the user is the sender or receiver
+      const isSender = escrow.sender.toLowerCase() === account.toLowerCase();
+      const isReceiver = escrow.receiver.toLowerCase() === account.toLowerCase();
+
+      if (!isSender && !isReceiver) {
+        console.error('You are not a participant in this escrow transaction');
+        return;
+      }
+
+      const tokenAddress = isSender ? escrow.tokenSentBySender : escrow.tokenSentByReceiver;
+      const tokenContract = new web3.eth.Contract(TokenAbi, tokenAddress);
+
+      // Approve the contract to spend the tokens on behalf of the user
+      await tokenContract.methods.approve(EscrowContractAddress, amount).send({ from: senderAddress });
+
+      // Call the depositTokensToEscrow function
+      await escrowContract.methods.depositTokensToEscrow(escrowIdBytes32, amountBytes32).send({ from: account });
+
+      console.log('Tokens deposited to escrow successfully');
+    } catch (error) {
+      console.error('Error depositing tokens to escrow:', error.message);
+    }
+  };
+
   return (
     <Dialog open={show} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit profile</DialogTitle>
+          <DialogTitle>Fund Escrow</DialogTitle>
           <DialogDescription>
-            Make changes to your profile here. Click save when you're done.
+            Fund the Tokens into Escrow For Successful Transaction
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Name
+            <Label htmlFor="receiver-address" className="text-right">
+              Receiver's Address
             </Label>
             <Input
-              id="name"
-              defaultValue="Pedro Duarte"
+              id="receiver-address"
+              value={receiverAddress}
+              readOnly
               className="col-span-3"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="username" className="text-right">
-              Username
+            <Label htmlFor="amount" className="text-right">
+              Amount
             </Label>
             <Input
-              id="username"
-              defaultValue="@peduarte"
+              id="amount"
+              value={amount}
+              readOnly
               className="col-span-3"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button type="submit">Save changes</Button>
+          <Button type="button" onClick={depositTokensToEscrow}>Fund Escrow</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -113,11 +166,11 @@ export function Escrow({ chainData, tokens }) {
   const [account, setAccount] = useState(null);
   const [showDialog, setShowDialog] = useState(false);
   const [showFundEscrowDialog, setShowFundEscrowDialog] = useState(false);
+  const [escrowIdBytes32, setEscrowIdBytes32] = useState('');
 
   const openFundEscrowDialog = () => {
-  setShowFundEscrowDialog(true);
-};
-
+    setShowFundEscrowDialog(true);
+  };
 
   const EscrowContractAddress = "0xe4dB10384821b7cAF702bb4c2eF8a7F99d979fEe";
 
@@ -177,9 +230,14 @@ export function Escrow({ chainData, tokens }) {
       const account = accounts[0];
 
       // Convert escrow ID to bytes using sha3
-      const escrowIdBytes32 = web3.utils.sha3(escrowId);
-      const amountSentBySenderWei = web3.utils.toWei(amountSentBySender, 'ether');
-      const amountSentByReceiverWei = web3.utils.toWei(amountSentByReceiver, 'ether');
+const escrowIdBytes32 = web3.utils.sha3(escrowId);
+      setEscrowIdBytes32(escrowIdBytes32);
+
+ 
+
+      const amountSentBySenderWei = web3.utils.toWei(amountSentBySender, 'ether').toString();
+const amountSentByReceiverWei = web3.utils.toWei(amountSentByReceiver, 'ether').toString();
+
 
       await escrowContract.methods.initiateEscrow(
         escrowIdBytes32,
@@ -198,6 +256,9 @@ export function Escrow({ chainData, tokens }) {
       console.error('Error initiating escrow:', error);
     }
   };
+
+
+ 
 
   return (
     <div>
@@ -267,20 +328,29 @@ export function Escrow({ chainData, tokens }) {
                     </div>
                   </div>
                   <div className="flex flex-row gap-[15rem]">
-                  <div className="mt-[26px]">
-                    <Button type="button" onClick={initiateEscrow}>Initiate Escrow</Button>
+                    <div className="mt-[26px]">
+                      <Button type="button" onClick={initiateEscrow}>Initiate Escrow</Button>
+                    </div>
+                    <div className="mt-[26px]">
+                      <Button type="button" onClick={openFundEscrowDialog}>Fund Escrow</Button>
+                    </div>
                   </div>
-                   <div className="mt-[26px] ">
-                    <Button type="button" onClick={openFundEscrowDialog}>Fund Escrow</Button>
-                    </div>
-                    </div>
                 </fieldset>
               </form>
             </div>
           </main>
         </div>
       </div>
-      <DialogDemo show={showFundEscrowDialog} onClose={() => setShowFundEscrowDialog(false)} />
+      <DialogDemo
+        senderAddress={account}
+        receiverAddress={receiver}
+        amount={amountSentBySender}
+        show={showFundEscrowDialog}
+        escrowId={escrowId}
+                escrowIdBytes32={escrowIdBytes32}
+
+        onClose={() => setShowFundEscrowDialog(false)}
+      />
     </div>
   );
 }

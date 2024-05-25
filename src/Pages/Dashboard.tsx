@@ -100,7 +100,7 @@ export function Dashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardFooter>
-                  <Button>New Escrow Order</Button>
+                  <a href="/escrow"><Button>New Escrow Order</Button></a>
                 </CardFooter>
               </Card>
               <Card x-chunk="dashboard-05-chunk-1">
