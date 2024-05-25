@@ -13,7 +13,7 @@ function App() {
     <BrowserRouter >
       <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/escrow"   element={<Escrow chainData={chainData} tokens={tokens} />} />
+          <Route path="/escrow"   element={<Escrow chainData={chainData}  tokens={tokens} />} />
 
       </Routes>
     </BrowserRouter>
