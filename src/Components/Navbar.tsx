@@ -71,6 +71,8 @@ import {
     TooltipProvider,
 
 } from "@/components/ui/tooltip"
+import WalletConnect from "./WalletConnet"
+
 
 const Navbar = () => {
   return (
@@ -146,7 +148,7 @@ const Navbar = () => {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage>Recent Orders</BreadcrumbPage>
-              </BreadcrumbItem>
+            </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           <div className="relative ml-auto flex-1 md:grow-0">
@@ -156,8 +158,9 @@ const Navbar = () => {
               placeholder="Search..."
               className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
             />
-          </div>
-          <DropdownMenu>
+        </div>
+        <WalletConnect/>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
@@ -181,7 +184,7 @@ const Navbar = () => {
               <DropdownMenuSeparator />
               <DropdownMenuItem>Logout</DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
         </header>
       
     </div>

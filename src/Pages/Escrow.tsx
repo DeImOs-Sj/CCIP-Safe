@@ -44,12 +44,62 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import Aside from "@/Components/Aside";
 import Navbar from '@/Components/Navbar';
 import { chainData } from "../utils/chainData";
+import WalletButton from '../Components/WalletConnet'; // Import the new component
+const DialogDemo = ({ show, onClose }) => {
+  return (
+    <Dialog open={show} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit profile</DialogTitle>
+          <DialogDescription>
+            Make changes to your profile here. Click save when you're done.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              Name
+            </Label>
+            <Input
+              id="name"
+              defaultValue="Pedro Duarte"
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="username" className="text-right">
+              Username
+            </Label>
+            <Input
+              id="username"
+              defaultValue="@peduarte"
+              className="col-span-3"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button type="submit">Save changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 // Import the contract ABI
 import EscrowAbi from "../Abis/escrow.json"; // Update with the actual path to your ABI file
+import Web3 from "web3";
 
 export function Escrow({ chainData, tokens }) {
   const [selectedChain, setSelectedChain] = useState('');
@@ -60,68 +110,93 @@ export function Escrow({ chainData, tokens }) {
   const [receiver, setReceiver] = useState('');
   const [amountSentBySender, setAmountSentBySender] = useState('');
   const [amountSentByReceiver, setAmountSentByReceiver] = useState('');
+  const [account, setAccount] = useState(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [showFundEscrowDialog, setShowFundEscrowDialog] = useState(false);
 
-  const handleChange = (chain) => {
-    console.log("this is the testnet ", chain);
-    console.log("hello this is the chain ", chain);
-    setSelectedChain(chain);
-    setChainDetails(chainData[chain]);
+  const openFundEscrowDialog = () => {
+  setShowFundEscrowDialog(true);
+};
+
+
+  const EscrowContractAddress = "0xe4dB10384821b7cAF702bb4c2eF8a7F99d979fEe";
+
+  const handleChainChange = (chainKey) => {
+    const chain = chainData[chainKey];
+    setSelectedChain(chainKey);
+    setChainDetails(chain);
+    handleAllowListChange(chain.value); // Pass the chain value to the allowlist function
   };
 
   const handleTokenChange = (token) => {
-    setSelectedToken(token);
-    setTokenAddress(tokens[token]);
+    const Token = tokens[token];
+    setTokenAddress(Token.value);
   };
 
-  // Function to initiate escrow
-  const initiateEscrow = async () => {
-    try {
-      // Ensure the user has MetaMask or another web3 provider
-      if (!window.ethereum) {
-        alert("Please install MetaMask or another web3 provider");
-        return;
-      }
-            // Create a new web3 provider and signer
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-
-
-    // Ensure the user is connected to the correct network
-    const network = await provider.getNetwork();
-    if (network.chainId !== chainDetails.chainSelector) {
-      alert(`Please switch to the correct network: ${chainDetails.name}`);
+  const handleAllowListChange = async (destinationAddress) => {
+    if (window.ethereum) {
+      window.web3 = new Web3(window.ethereum);
+      await window.ethereum.enable();
+    } else if (window.web3) {
+      window.web3 = new Web3(window.web3.currentProvider);
+    } else {
+      console.log("Non-Ethereum browser detected. You should consider trying MetaMask!");
       return;
     }
+    const web3 = window.web3;
 
+    const contract = new web3.eth.Contract(EscrowAbi, EscrowContractAddress);
 
+    try {
+      const accounts = await web3.eth.getAccounts();
+      const account = accounts[0];
 
-      const Address='0xe4dB10384821b7cAF702bb4c2eF8a7F99d979fEe'
-      // Create a contract instance
-      const contract = new ethers.Contract(
-        Address, // The address of the deployed contract
-        EscrowAbi, // The ABI of the contract
-        signer
-      );
-
-      // Call the initiateEscrow function on the contract
-      const tx = await contract.initiateEscrow(
-        escrowId,
-        receiver,
-        selectedToken,
-        ethers.utils.parseUnits(amountSentBySender, 18),
-        selectedToken, // Assuming the same token for simplicity, update as needed
-        ethers.utils.parseUnits(amountSentByReceiver, 18)
-      );
-
-      await tx.wait();
-      console.log("Escrow initiated:", tx);
+      await contract.methods.allowlistDestinationChain(parseInt(destinationAddress), true).send({ from: account });
+      console.log("Chain allowlisted successfully");
     } catch (error) {
-    if (error.code === ethers.errors.UNSUPPORTED_OPERATION) {
-      console.error("Network does not support ENS. Ensure you are on the correct network.");
-    } else {
-      console.error("Error initiating escrow:", error);
+      console.error("Error allowlisting chain:", error);
     }
-  }
+  };
+
+  const initiateEscrow = async () => {
+    if (window.ethereum) {
+      window.web3 = new Web3(window.ethereum);
+      await window.ethereum.enable();
+    } else if (window.web3) {
+      window.web3 = new Web3(window.web3.currentProvider);
+    } else {
+      console.log("Non-Ethereum browser detected. You should consider trying MetaMask!");
+      return;
+    }
+    const web3 = window.web3;
+
+    const escrowContract = new web3.eth.Contract(EscrowAbi, EscrowContractAddress);
+
+    try {
+      const accounts = await web3.eth.getAccounts();
+      const account = accounts[0];
+
+      // Convert escrow ID to bytes using sha3
+      const escrowIdBytes32 = web3.utils.sha3(escrowId);
+      const amountSentBySenderWei = web3.utils.toWei(amountSentBySender, 'ether');
+      const amountSentByReceiverWei = web3.utils.toWei(amountSentByReceiver, 'ether');
+
+      await escrowContract.methods.initiateEscrow(
+        escrowIdBytes32,
+        receiver,
+        tokenAddress,
+        amountSentBySenderWei,
+        tokenAddress,
+        amountSentByReceiverWei
+      ).send({ from: account });
+
+      console.log('Escrow initiated successfully');
+
+      // Show the dialog immediately after initiating the escrow
+      setShowDialog(true);
+    } catch (error) {
+      console.error('Error initiating escrow:', error);
+    }
   };
 
   return (
@@ -134,13 +209,11 @@ export function Escrow({ chainData, tokens }) {
             <div className="relative hidden flex-col items-start gap-8 md:flex" x-chunk="dashboard-03-chunk-0">
               <form className="grid w-full items-start gap-6">
                 <fieldset className="grid gap-6 rounded-lg border p-4">
-                  <legend className="-ml-1 px-1 text-sm font-medium">
-                    Escorw
-                  </legend>
+                  <legend className="-ml-1 px-1 text-sm font-medium">Escrow</legend>
                   <div className="grid gap-3">
-                    <Label htmlFor="model">Select the chain</Label>
-                    <Select onValueChange={handleChange}>
-                      <SelectTrigger id="model" className="items-start [&_[data-description]]:hidden">
+                    <Label htmlFor="chain">Select the chain</Label>
+                    <Select onValueChange={handleChainChange}>
+                      <SelectTrigger id="chain" className="items-start [&_[data-description]]:hidden">
                         <SelectValue placeholder="Select a chain" />
                       </SelectTrigger>
                       <SelectContent>
@@ -148,47 +221,13 @@ export function Escrow({ chainData, tokens }) {
                           <SelectItem key={chain} value={chain}>
                             <div className="flex items-start gap-3 text-muted-foreground">
                               <div className="grid gap-0.5">
-                                <p>
-                                  Chain{" "}
-                                  <span className="font-medium text-foreground">{chain}</span>
-                                </p>
+                                <p>Chain <span className="font-medium text-foreground">{chainData[chain].name}</span></p>
                               </div>
                             </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {chainDetails && (
-                      <div className="bg-gray-800 text-white p-4 rounded">
-                        <h2 className="text-lg font-bold">{selectedChain}</h2>
-                        <p>
-                          <strong>Router Address:</strong> {chainDetails.routerAddress}
-                        </p>
-                        <p>
-                          <strong>Chain Selector:</strong> {chainDetails.chainSelector}
-                        </p>
-                        <div>
-                          <strong>Fee Tokens:</strong>
-                          <ul>
-                            {Object.entries(chainDetails.feeTokens).map(([token, address]) => (
-                              <li key={token}>
-                                {token}: {address}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <strong>Destination Chains:</strong>
-                          <ul>
-                            {chainDetails.destinationChainAddress.map((dest, index) => (
-                              <li key={index}>
-                                {dest.name}: {dest.address}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
                   </div>
                   <div className="grid gap-3">
                     <Label htmlFor="escrow-id">Escrow ID</Label>
@@ -218,37 +257,30 @@ export function Escrow({ chainData, tokens }) {
                             <SelectItem key={token} value={token}>
                               <div className="flex items-start gap-3 text-muted-foreground">
                                 <div className="grid gap-0.5">
-                                  <p>
-                                    Token{" "}
-                                    <span className="font-medium text-foreground">{token}</span>
-                                  </p>
+                                  <p>Token <span className="font-medium text-foreground">{token}</span></p>
                                 </div>
                               </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      {tokenAddress && (
-                        <div className="bg-gray-800 text-white p-4 rounded mt-4">
-                          <h2 className="text-lg font-bold">Selected Token: {selectedToken}</h2>
-                          <p>
-                            <strong>Token Address:</strong> {tokenAddress}
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </div>
+                  <div className="flex flex-row gap-[15rem]">
                   <div className="mt-[26px]">
-                    <Button type="button" onClick={initiateEscrow}>
-                      Initiate Escrow
-                    </Button>
+                    <Button type="button" onClick={initiateEscrow}>Initiate Escrow</Button>
                   </div>
+                   <div className="mt-[26px] ">
+                    <Button type="button" onClick={openFundEscrowDialog}>Fund Escrow</Button>
+                    </div>
+                    </div>
                 </fieldset>
               </form>
             </div>
           </main>
         </div>
       </div>
+      <DialogDemo show={showFundEscrowDialog} onClose={() => setShowFundEscrowDialog(false)} />
     </div>
   );
 }
