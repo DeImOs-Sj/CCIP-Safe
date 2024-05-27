@@ -113,7 +113,7 @@ const Aside = () => {
                 <span className="sr-only">Escrow Service</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Orders</TooltipContent>
+            <TooltipContent side="right">Escorw Service</TooltipContent>
                       </Tooltip>
                           </TooltipProvider>
     <TooltipProvider>
@@ -128,7 +128,7 @@ const Aside = () => {
                 <span className="sr-only">Products</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Products</TooltipContent>
+            <TooltipContent side="right">ChatBot System</TooltipContent>
                       </Tooltip>
                           </TooltipProvider>
     <TooltipProvider>
@@ -136,14 +136,14 @@ const Aside = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
-                to=""
+                to="/mintNFT"
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
               >
                 <Users2 className="h-5 w-5" />
                 <span className="sr-only">Customers</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Customers</TooltipContent>
+            <TooltipContent side="right">Mint NFT</TooltipContent>
                       </Tooltip>
                           </TooltipProvider>
     <TooltipProvider>

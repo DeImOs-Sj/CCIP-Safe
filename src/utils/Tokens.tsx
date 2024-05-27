@@ -4,7 +4,7 @@ export const tokens = {
         "USDC": {  value: "0x5425890298aed601595a70AB815c96711a31Bc65" },
 
             "WBNB	": {  value: "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd" },
-
+              "Native":{value:"0"}
 
   // Add other chains similarly
 };
